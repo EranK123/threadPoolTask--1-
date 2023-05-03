@@ -39,43 +39,63 @@ sem_t job_queue_count;
     void *worker_thread(void *arg)
     {
         // printf("arg %p \n", arg);
-        struct task *next_task;
+        struct task *next_task =(struct task*)malloc(sizeof(struct task));;
         // std::cout<<"69";
         // exit(1);
         while(1){
-            printf("45\n");
+            // printf("45\n");
             // pthread_mutex_lock(&mutex_two);
             pthread_mutex_lock(&mutex);
             // sem_wait(&job_queue_count);'
-            printf("tasks.front.data %s \n", tasks.front().data);
-            printf("49\n");
+            // printf("tasks.front.data %s \n", tasks.front().data);
+            // printf("49\n");
             while (tasks.empty())
             {
-                printf("53\n");
+                // printf("53\n");
                 pthread_cond_wait(&cond, &mutex);
             }
             
             *next_task = tasks.front();
-            printf("len %d \n", next_task->id);
-            std::cout<<"data"<<next_task->data;
+            // printf("len %d \n", next_task->id);
+            //     fflush(stdout);
+
+            // std::cout<<"data"<<next_task->data;
             // printf("data %s \n", next_task->data);
-            printf("\nkey %d \n", next_task->key);
-            printf("next_task->type %d\n ", strcmp(next_task->type, "-e"));
+            //     fflush(stdout);
+
+            // printf("\nkey %d \n", next_task->key);
+            //     fflush(stdout);
+
+            // printf("next_task->type %d\n ", strcmp(next_task->type, "-e"));
+            //     fflush(stdout);
+
             // if (next_task->data[0] == '-1')
             // {
             //     exit(1);
             // }
-            pthread_mutex_unlock(&mutex);
+            // pthread_mutex_unlock(&mutex);
 
             // pthread_mutex_unlock(&mutex_two);
-            printf("next_task->type!! %s\n ", next_task->type);
+            // printf("next_task->type!! %s\n ", next_task->type);
+            //     fflush(stdout);
+
             if(!strcmp(next_task->type, "-e")){
-                printf("71!!!!!!!!!!!!!!!!!! \n");
+
+                 strcat(next_task->data, "\0");
+                     // std::cout<<"data"<<next_task->data;
+            // printf("data7111 %s \n", next_task->data);
+            //     fflush(stdout);
                 encrypt_func(next_task->data, next_task->key);
+            //     printf("1111");
+            //     fflush(stdout);
             }else{
                 decrypt_func(next_task->data, next_task->key);    
             }
+            printf("%s", next_task->data);
+            fflush(stdout);
             tasks.pop();
+            pthread_mutex_unlock(&mutex);
+
 
         }
         // return NULL;
@@ -137,7 +157,7 @@ int main(int argc, char *argv[]) {
        counter++;
 
         if (counter == 1024){
-            printf("135!!!");
+            // printf("135!!!");
             struct task *task = (struct task*)malloc(sizeof(struct task));
             pthread_mutex_lock(&mutex);
             strcat(task->data, data);
@@ -151,8 +171,8 @@ int main(int argc, char *argv[]) {
             id++;
         }
     }
-    printf("counter %d \n", counter);
-    
+    // printf("counter %d \n", counter);
+    // fflush(stdout);
     if (counter > 0){
 
 
@@ -166,6 +186,8 @@ int main(int argc, char *argv[]) {
         struct task *task2 = (struct task*)malloc(sizeof(struct task));
         memset(task2->data, '\0', 1024);
         strcpy(task2->data, lastData);
+            // printf("data task2%s \n", task2->data);
+            //     fflush(stdout);
         // strncat(data, '\0', strlen(data));
         strcpy(task2->type, type);
         (*task2).key = key;
@@ -175,11 +197,13 @@ int main(int argc, char *argv[]) {
         pthread_cond_broadcast(&cond);
         // sem_post(&job_queue_count);
 
-        printf("tasks[0] %s\n", tasks.front().data);
-        printf("tasks[0] %ld\n", strlen(tasks.front().data));
+        // printf("tasks[0] %s\n", tasks.front().data);
+        //                 fflush(stdout);
+
+        // printf("tasks[0] %ld\n", strlen(tasks.front().data));
         // exit(1);
     }
-    // while(1){ continue; }
+    while(1){ continue; }
 
     return 0;
 }
