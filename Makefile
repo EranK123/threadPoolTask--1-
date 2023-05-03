@@ -1,12 +1,9 @@
 .PHONY: all
-all: task stdinExample
+all: coder
 
-task:	codec.h basic_main.c
-	gcc basic_main.c -L. -l Codec -o encoder
-
-stdinExample:	stdin_main.c
-		gcc stdin_main.c -L. -l Codec -o tester
+coder: codec.h ThreadPool.cpp
+	g++ ThreadPool.cpp -ldl -pthread ./libCodec.so -o coder
 
 .PHONY: clean
 clean:
-	-rm encoder tester libCodec.so 2>/dev/null
+	-rm coder 2>/dev/null
