@@ -1,59 +1,74 @@
-// #include <thread>
-#include "codec.h"
-#include <mutex>
-#include <condition_variable>
-#include <queue>
-#include <functional>
-#include <vector>
-#include <iostream>
-// #include <sys/sysinfo.h>
-#include <unistd.h>
-#include <pthread.h>
+// #include "codec.h"
+// #include <queue>
+// #include <functional>
+// #include <vector>
+// #include <iostream>
+// #include <unistd.h>
+// #include <pthread.h>
 
-#include <iostream>
-#include <chrono>
-#include <unistd.h>
-#include <dlfcn.h>
+// #include <iostream>
+// #include <chrono>
+// #include <unistd.h>
+// #include <dlfcn.h>
+// #include <stdio.h>
+// #include <string.h>
+// #include <semaphore.h>
+// #include <sys/sysinfo.h>
+// #include <string>
+
+
+#include "codec.h"
 #include <stdio.h>
 #include <string.h>
-#include <semaphore.h>
+#include <stdlib.h>
+#include <iostream>
+#include <queue>
+#include <string.h>
 #include <sys/sysinfo.h>
-
+#include <pthread.h>
+#include <dlfcn.h>
+// using namespace std;
 void (*encrypt_func)(char *s, int key);
 void (*decrypt_func)(char *s, int key);
 
 struct task{
     int id;
     int key;
+    // string data;
     char data[1024];
     char type[2];
 };
 
 std::vector<pthread_t> threads;
 std::queue<struct task> tasks;
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutex_two = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex_index = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond;
-sem_t job_queue_count;
-   
+pthread_cond_t cond_write;
+// sem_t job_queue_count;
+// int index_w;
+int count_tasks;
+int size_tasks;
     void *worker_thread(void *arg)
     {
         // printf("arg %p \n", arg);
-        struct task *next_task =(struct task*)malloc(sizeof(struct task));;
+        // struct task *next_task =(struct task*)malloc(sizeof(struct task));
         // std::cout<<"69";
         // exit(1);
-        while(1){
+        // printf("tasks_size %d ", tasks.empty());
+        while(count_tasks < size_tasks){
             // printf("45\n");
             // pthread_mutex_lock(&mutex_two);
-            pthread_mutex_lock(&mutex);
+            pthread_mutex_lock(&mutex1);
+            struct task *next_task =(struct task*)malloc(sizeof(struct task));
             // sem_wait(&job_queue_count);'
             // printf("tasks.front.data %s \n", tasks.front().data);
             // printf("49\n");
-            while (tasks.empty())
-            {
-                // printf("53\n");
-                pthread_cond_wait(&cond, &mutex);
-            }
+            // while (tasks.empty())
+            // {
+            //     // printf("53\n");
+            //     pthread_cond_wait(&cond, &mutex1);
+            // }
             
             *next_task = tasks.front();
             // printf("len %d \n", next_task->id);
@@ -78,47 +93,61 @@ sem_t job_queue_count;
             // pthread_mutex_unlock(&mutex_two);
             // printf("next_task->type!! %s\n ", next_task->type);
             //     fflush(stdout);
-
+            count_tasks++;
+            // char data[1024];
+            // strcpy(data, next_task->data.c_str()); 
+            // strcpy(data, next_task->data); 
+            // string zero = 
+            // strcat(data, "\0");
+            int key = next_task->key;
+            // char *data = (char*)(malloc(sizeof(char)*strlen(next_task->data)));
+            // strcpy(data, next_task->data);
+            // exit(1);
+            // printf("%s", next_task->data);
             if(!strcmp(next_task->type, "-e")){
 
-                 strcat(next_task->data, "\0");
+                //  strcat(next_task->data, "\0");
                      // std::cout<<"data"<<next_task->data;
             // printf("data7111 %s \n", next_task->data);
             //     fflush(stdout);
+                // char data[1024];
+                // strcpy(data, next_task->data.c_str()); 
+
                 encrypt_func(next_task->data, next_task->key);
+                printf("%s", next_task->data);
+                fflush(stdout);
+                // encrypt_func(data, next_task->key);
             //     printf("1111");
             //     fflush(stdout);
-            }else{
+            }else if(!strcmp(next_task->type, "-d")){
                 decrypt_func(next_task->data, next_task->key);    
+
+                // decrypt_func(data, next_task->key);
+                printf("%s", next_task->data);
+                fflush(stdout);
             }
-            printf("%s", next_task->data);
-            fflush(stdout);
+            // printf("%s", next_task->data);
+            // fflush(stdout);
             tasks.pop();
-            pthread_mutex_unlock(&mutex);
+            pthread_mutex_unlock(&mutex1);
 
 
         }
-        // return NULL;
+        // pthread_exit(NULL);
+        return NULL;
     }
 
 int main(int argc, char *argv[]) {
     // int num_of_threads = get_nprocs();
     // std::cout<<"106";
-    int num_of_threads = get_nprocs_conf();//sysconf(_SC_NPROCESSORS_ONLN);
+    int num_of_threads = 2;//sysconf(_SC_NPROCESSORS_ONLN);//get_nprocs_conf();
+    // printf("num_of_threads %d \n", num_of_threads);
     // ThreadPool pool(num_of_threads);
-    threads.reserve(num_of_threads);
-    for (size_t i = 0; i < num_of_threads; ++i)
-    {
-        pthread_t thread_id;
-        pthread_create(&thread_id, NULL, worker_thread, NULL);
-        threads.push_back(thread_id);
-    //     // printf("thread_id %ld\n", thread_id);
-    }
 
     // std::cout<<"116";
     void* handle = dlopen("./libCodec.so", RTLD_LAZY | RTLD_GLOBAL);
     if(!handle){
-        fprintf(stderr, "dlerror: %s\n", dlerror());
+        // fprintf(stderr, "dlerror: %s\n", dlerror());
         exit(EXIT_FAILURE);
     }
     
@@ -142,8 +171,10 @@ int main(int argc, char *argv[]) {
 	char data[dest_size]; 
     char type[2];
     strcpy(type, argv[2]);
+    // index_w = 0;
+    count_tasks = 0;
     // printf("type %s \n", type);
-    // memset(data, '\0', sizeof(data));
+
     // memset(task->data, '\0', 1024);
     // sem_init(&job_queue_count , 0 , 0);
     // if(!strcmp(argv[2], "-e")){
@@ -151,7 +182,7 @@ int main(int argc, char *argv[]) {
     // }else{
     //     strcat(task->type, type2);  
     // }
-
+    // memset(data, '\0', 1024);
 	while ((c = getchar()) != EOF){
        data[counter] = c;
        counter++;
@@ -159,16 +190,30 @@ int main(int argc, char *argv[]) {
         if (counter == 1024){
             // printf("135!!!");
             struct task *task = (struct task*)malloc(sizeof(struct task));
-            pthread_mutex_lock(&mutex);
-            strcat(task->data, data);
-            strcat(task->type, type);
+            // bzero(task->data, 1024);
+            // memset(task->data,'\0', 1024);
+            // pthread_mutex_lock(&mutex1);
+            strcpy(task->data, data);
+            // task->data = data;
+            // strcat(task->data, "\0");
+            strcpy(task->type, type);
             task->key = key;
             task->id = id;
             tasks.push(*task);
-            pthread_mutex_unlock(&mutex);
-            pthread_cond_broadcast(&cond);
+            size_tasks++;
+            // pthread_mutex_unlock(&mutex);
+            // pthread_cond_broadcast(&cond);
 		    counter = 0;
             id++;
+            // memset(data, '\0', 1024);
+            // pthread_mutex_unlock(&mutex1);
+            // while (index_w < task->id){
+            //     pthread_cond_wait(&cond_write, &mutex_index);
+            // }   
+            // index_w++;
+            // pthread_cond_broadcast(&cond_write);
+            // pthread_cond_broadcast(&cond);
+            // printf("data %s \n", task->data);
         }
     }
     // printf("counter %d \n", counter);
@@ -176,7 +221,7 @@ int main(int argc, char *argv[]) {
     if (counter > 0){
 
 
-        // pthread_mutex_lock(&mutex);
+        // pthread_mutex_lock(&mutex1);
         char lastData[counter];
         lastData[0] = '\0';
         // printf("data! %s\n", data);
@@ -186,15 +231,17 @@ int main(int argc, char *argv[]) {
         struct task *task2 = (struct task*)malloc(sizeof(struct task));
         memset(task2->data, '\0', 1024);
         strcpy(task2->data, lastData);
-            // printf("data task2%s \n", task2->data);
+        // task2->data = lastData;
+        // printf("data task2%s \n", task2->data);
             //     fflush(stdout);
         // strncat(data, '\0', strlen(data));
         strcpy(task2->type, type);
-        (*task2).key = key;
-        (*task2).id = id;
+        task2->key = key;
+        task2->id = id;
         tasks.push(*task2);
+        // size_tasks++;
         // pthread_mutex_unlock(&mutex);
-        pthread_cond_broadcast(&cond);
+        // pthread_cond_broadcast(&cond);
         // sem_post(&job_queue_count);
 
         // printf("tasks[0] %s\n", tasks.front().data);
@@ -203,7 +250,24 @@ int main(int argc, char *argv[]) {
         // printf("tasks[0] %ld\n", strlen(tasks.front().data));
         // exit(1);
     }
-    while(1){ continue; }
+    
+    // threads.reserve(num_of_threads);
+    // printf("num of threads %d \n", num_of_threads);
+    // printf("tasks.size %d \n", tasks.size());
+    for (int i = 0; i < num_of_threads && tasks.size(); ++i)
+    {
+        pthread_t thread_id;
+        pthread_create(&thread_id, NULL, worker_thread, NULL);
+        threads.push_back(thread_id);
+    //     // printf("thread_id %ld\n", thread_id);
+    }
+
+    for (int i = 0; i < num_of_threads; i++)
+    {
+        pthread_join(threads.at(i), NULL);
+    }
+    // exit(1);
+    // while(1){ continue; }
 
     return 0;
 }
