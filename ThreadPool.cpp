@@ -20,7 +20,7 @@ vector<string> tasks;
 unordered_map<int, string> all_data;
 
 pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
-int count_tasks;
+int count_tasks=0;
 int key;
 char type[2];
 
@@ -41,8 +41,7 @@ char type[2];
                 decrypt_func(data, key);    
 
             }
-            string txt(data);
-            all_data[idx] = txt; //string(data)
+            all_data[idx] = string(data);
             
         }
         pthread_exit(NULL);
@@ -69,7 +68,7 @@ int main(int argc, char *argv[]) {
 	int dest_size = 1024;
 	char data[dest_size]; 
     strcpy(type, argv[2]);
-    count_tasks = 0;
+    //count_tasks = 0;
     memset(data, '\0', 1024);
 	
     while ((c = getchar()) != EOF){
@@ -99,7 +98,7 @@ int main(int argc, char *argv[]) {
     {
         pthread_join(threads.at(i), NULL);
     }
-    for (size_t i = 0; i < count_tasks; i++)
+    for (int i = 0; i < tasks.size(); i++)
     {
         cout<<all_data.at(i).c_str();
     }
